@@ -1,0 +1,66 @@
+CENTRAL DE DEMANDAS — GLOBAL PEÇAS
+
+1. SUPABASE
+Crie um projeto novo. Em Authentication > Users > Add user, crie o gestor
+clayton@globalpecas.com com senha pessoal e e-mail confirmado pelo painel.
+Desative novos cadastros públicos em Authentication se não precisar deles.
+Em SQL Editor, execute supabase.sql uma vez. O resultado final deve
+mostrar o gestor autorizado. Se criar a conta depois do SQL, repita só:
+
+insert into public.gestores (user_id)
+select id from auth.users where lower(email) = 'clayton@globalpecas.com'
+on conflict do nothing;
+
+Para outro gestor, crie a conta e execute esse trecho com o novo e-mail.
+
+2. CONFIGURAÇÃO
+Copie a URL e a chave pública anon/publishable do projeto Supabase.
+Preencha SUPABASE_URL e SUPABASE_ANON_KEY no começo de app.js.
+Nunca use service_role, secret key ou senha de banco no navegador.
+A senha do gestor fica no Supabase Auth, não no código JavaScript.
+
+3. GITHUB
+Crie um repositório. Use Add file > Upload files e envie somente
+index.html, style.css e app.js na raiz. Clique em Commit changes.
+
+4. VERCEL
+Use Add New > Project e importe o repositório do GitHub.
+Framework Preset: Other. Pasta raiz: a raiz do repositório.
+Sem comando de instalação ou build. Se pedir Output Directory, use .
+Clique em Deploy. Alterações futuras na branch de produção geram
+novo deploy quando a integração automática estiver habilitada.
+ATENÇÃO: Vercel Hobby é para uso pessoal/não comercial. Para a empresa,
+use um plano permitido para esse uso: https://vercel.com/docs/plans/hobby
+
+5. USO
+Funcionário: abra o endereço, preencha nome, setor, prioridade e descrição.
+Gestor: abra o mesmo endereço com #gestao no final e entre com sua conta.
+Clique em Ativar som e Tela cheia para usar no monitor grande.
+O painel usa Realtime e também consulta o banco a cada 15 segundos.
+Filtros afetam as colunas; os totais superiores são gerais.
+Mantenha computador acordado, internet ativa e a aba visível.
+Navegadores podem atrasar atualizações/som quando a aba está suspensa.
+
+6. TESTE REAL ANTES DE USAR
+Envie um pedido pelo celular e veja se chega no monitor do computador.
+Mude o status para Em andamento e Concluído.
+Sem login, confira que não é possível ver a lista de pedidos.
+Uma conta sem registro na tabela gestores não deve abrir o monitor.
+Ative o som, envie outro pedido e confira o alerta.
+
+ESCOPO E VALIDAÇÃO
+Esta versão segue o último prompt: funcionário envia sem login;
+gestor entra com e-mail e senha do Supabase, sem precisar de ChatGPT.
+O nome informado pelo funcionário não é uma identidade autenticada.
+Não há anexos, contas de funcionários nem avisos por WhatsApp/e-mail.
+Quem tiver o endereço pode enviar pedidos; para controlar remetentes
+e combater spam, acrescente autenticação ou CAPTCHA validado no servidor.
+A leitura e a mudança de status são protegidas pelas políticas RLS.
+Dados ficam no Supabase, não no GitHub ou na Vercel.
+A chave pública pode estar no código; segredos e senhas nunca.
+Se o Supabase suspender o projeto ou limitar o serviço, o envio e
+as atualizações dependerão da restauração do serviço.
+A sintaxe e as referências dos controles foram verificadas localmente.
+Não foi possível testar banco, login e Realtime reais sem um projeto
+Supabase configurado. Os arquivos não contêm credenciais reais.
+A página anterior em chatgpt.site não foi substituída.
