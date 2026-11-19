@@ -1,0 +1,37 @@
+PUBLICAÇÃO CONCLUÍDA
+
+Formulário da equipe:
+https://painel-de-demandas-one.vercel.app/
+
+Monitor de gestão:
+https://painel-de-demandas-one.vercel.app/#gestao
+
+Gestor autorizado: clayton@globalpecas.com
+Senha: a que você definiu no Supabase (não está armazenada neste arquivo).
+
+USO NO MONITOR
+Entre na aba Monitor de gestão. Clique em Ativar som e Tela cheia.
+O painel usa Realtime e confere os dados a cada 15 segundos.
+Mantenha a tela/computador acordados e conectados à internet.
+
+VERIFICAÇÃO
+Página, CSS e JavaScript publicados responderam HTTP 200 sem login Vercel.
+Envio de teste chegou ao banco pela conexão pública do site.
+Leitura e alteração sem login foram bloqueadas.
+Uma tentativa de envio com status pré-aprovado/concluído foi bloqueada.
+A conta do gestor conseguiu concluir a demanda de teste.
+A demanda Teste de publicação ficou identificada e concluída no banco.
+A entrada com sua senha e o alerta sonoro devem ser conferidos por você
+no navegador, porque sua senha não foi compartilhada com o assistente.
+
+PUBLICAÇÃO
+Projeto Vercel: painel-de-demandas
+Equipe: claytongdl-5542
+Deployment: dpl_CbjifhWKCekm1QLKVVhWec94fNwA
+Publicação direta dos três arquivos que estavam no GitHub.
+O vínculo automático GitHub/Vercel não foi ativado: a Vercel pediu
+uma Login Connection com GitHub. Alterações futuras precisam ser
+republicadas até que esse vínculo seja configurado.
+Nenhum plano pago foi contratado. A conta informava plano Hobby.
+Para usar comercialmente, confira um plano permitido pela Vercel:
+https://vercel.com/docs/plans/hobby
