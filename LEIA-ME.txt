@@ -60,7 +60,13 @@ Dados ficam no Supabase, não no GitHub ou na Vercel.
 A chave pública pode estar no código; segredos e senhas nunca.
 Se o Supabase suspender o projeto ou limitar o serviço, o envio e
 as atualizações dependerão da restauração do serviço.
-A sintaxe e as referências dos controles foram verificadas localmente.
-Não foi possível testar banco, login e Realtime reais sem um projeto
-Supabase configurado. Os arquivos não contêm credenciais reais.
+A página foi publicada e o envio ao Supabase foi testado.
+Leitura e alteração sem login foram bloqueadas. O gestor foi autorizado.
+O login com sua senha e o som devem ser conferidos por você no navegador.
+Os arquivos contêm apenas a chave pública, nenhuma senha ou chave secreta.
 A página anterior em chatgpt.site não foi substituída.
+
+ENDEREÇOS PUBLICADOS
+Formulário: https://painel-de-demandas-one.vercel.app/
+Monitor: https://painel-de-demandas-one.vercel.app/#gestao
+Veja PUBLICADO.txt para o registro da publicação e das verificações.
