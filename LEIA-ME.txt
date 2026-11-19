@@ -2,13 +2,13 @@ CENTRAL DE DEMANDAS — GLOBAL PEÇAS
 
 1. SUPABASE
 Crie um projeto novo. Em Authentication > Users > Add user, crie o gestor
-clayton@globalpecas.com com senha pessoal e e-mail confirmado pelo painel.
+clayton@globalpeca.com com senha pessoal e e-mail confirmado pelo painel.
 Desative novos cadastros públicos em Authentication se não precisar deles.
 Em SQL Editor, execute supabase.sql uma vez. O resultado final deve
 mostrar o gestor autorizado. Se criar a conta depois do SQL, repita só:
 
 insert into public.gestores (user_id)
-select id from auth.users where lower(email) = 'clayton@globalpecas.com'
+select id from auth.users where lower(email) = 'clayton@globalpeca.com'
 on conflict do nothing;
 
 Para outro gestor, crie a conta e execute esse trecho com o novo e-mail.
