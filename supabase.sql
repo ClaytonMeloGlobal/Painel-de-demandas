@@ -70,7 +70,7 @@ create trigger registrar_status_demanda
 
 -- Autoriza Clayton como gestor. Troque o e-mail se necessário.
 insert into public.gestores (user_id)
-select id from auth.users where lower(email) = 'clayton@globalpecas.com'
+select id from auth.users where lower(email) = 'clayton@globalpeca.com'
 on conflict do nothing;
 
 do $$
