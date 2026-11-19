@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Central de demandas internas da Global Peças.">
+  <title>Central de demandas | Global Peças</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- CDN indicada na documentação oficial do Supabase. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#enviar" aria-label="Central de demandas, início">
+      <span class="brand-icon" aria-hidden="true">✓</span>
+      <span>Central<small>GLOBAL PEÇAS · DEMANDAS</small></span>
+    </a>
+    <nav aria-label="Navegação principal">
+      <a href="#enviar" id="nav-enviar">Enviar demanda</a>
+      <a href="#gestao" id="nav-gestao">Monitor de gestão</a>
+    </nav>
+    <button id="theme-toggle" type="button" class="subtle">Tema escuro</button>
+  </header>
+  <div id="config-notice" class="config-notice" role="alert" hidden></div>
+  <main>
+    <section id="employee-view" class="employee-layout" aria-labelledby="employee-title">
+      <div class="intro">
+        <p class="eyebrow">DA SUA EQUIPE PARA A GESTÃO</p>
+        <h1 id="employee-title">O que você precisa<br>resolver hoje?</h1>
+        <p>Envie seu pedido com clareza. A gestão recebe no painel e organiza o atendimento por prioridade.</p>
+        <div class="intro-note"><strong>Cada pedido no seu lugar.</strong><p>Informe a peça, o veículo, o motivo da compra ou o impacto na operação. Quanto mais contexto, melhor a decisão.</p></div>
+        <small>Veículo parado? Explique o impacto e selecione Alta/Urgente.</small>
+      </div>
+      <form id="request-form" class="panel request-form">
+        <div class="section-label">NOVA SOLICITAÇÃO</div>
+        <h2>Enviar uma demanda</h2>
+        <label for="requester">Nome do solicitante</label>
+        <input id="requester" name="solicitante" required minlength="2" maxlength="100" autocomplete="name" placeholder="Ex.: Rafael Silva">
+        <label for="department">Departamento</label>
+        <select id="department" name="departamento" required>
+          <option value="">Selecione seu departamento</option>
+          <option>Comercial</option><option>Oficina/Operacional</option>
+          <option>Estoque/Peças</option><option>Financeiro</option><option>Administrativo</option>
+        </select>
+        <fieldset class="priorities"><legend>Prioridade</legend>
+          <label class="priority-option low"><input type="radio" name="prioridade" value="Baixa" required><span>Baixa<small>Pode aguardar</small></span></label>
+          <label class="priority-option medium"><input type="radio" name="prioridade" value="Média" checked><span>Média<small>Precisa de atenção</small></span></label>
+          <label class="priority-option high"><input type="radio" name="prioridade" value="Alta/Urgente"><span>Alta/Urgente<small>Impacta a operação</small></span></label>
+        </fieldset>
+        <label for="description">Descreva o que precisa</label>
+        <textarea id="description" name="descricao" required minlength="10" maxlength="4000" rows="5" placeholder="Ex.: Preciso da peça X para o veículo Y, ano Z. O veículo está parado na oficina aguardando a peça."></textarea>
+        <div class="field-hint"><span>Inclua os detalhes necessários para a gestão agir.</span><span id="char-count">0/4000</span></div>
+        <button id="send-button" class="primary full" type="submit">Enviar demanda</button>
+        <p id="submit-message" class="message" role="status" aria-live="polite" hidden></p>
+      </form>
+    </section>
+
+    <section id="management-view" hidden aria-labelledby="management-title">
+      <div id="login-panel" class="panel login-panel">
+        <div class="login-icon" aria-hidden="true">▣</div>
+        <p class="eyebrow">ACESSO DO GESTOR</p><h1 id="management-title">Monitor de gestão</h1>
+        <p>Entre com o e-mail e a senha cadastrados no Supabase para acompanhar as demandas.</p>
+        <form id="login-form">
+          <label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required>
+          <label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required maxlength="128">
+          <button id="login-button" type="submit" class="primary full">Entrar no monitor</button>
+          <p id="login-message" class="message" role="alert" hidden></p>
+        </form>
+      </div>
+      <div id="monitor-panel" hidden>
+        <div class="monitor-heading"><div><p class="eyebrow">VISÃO GERAL DA OPERAÇÃO</p><h1>Demandas da empresa</h1><p>O mais importante vem primeiro. Acompanhe e mova os pedidos conforme o atendimento.</p></div>
+          <div class="actions"><button id="sound-toggle" type="button" aria-pressed="false">Ativar som</button><button id="fullscreen-toggle" type="button">Tela cheia</button><button id="logout-button" type="button">Sair</button></div>
+        </div>
+        <div class="sync-row"><span id="connection-state" role="status">Conectando…</span><span id="last-sync">Aguardando atualização</span></div>
+        <div class="stats" aria-label="Resumo das demandas">
+          <div class="stat"><span>Pendentes</span><strong id="count-pending">0</strong></div>
+          <div class="stat"><span>Em andamento</span><strong id="count-progress">0</strong></div>
+          <div class="stat"><span>Concluídas</span><strong id="count-done">0</strong></div>
+          <div class="stat urgent-stat"><span>Alta/Urgente em aberto</span><strong id="count-urgent">0</strong></div>
+        </div>
+        <div class="filters panel">
+          <label>Departamento<select id="filter-department"><option value="">Todos os departamentos</option><option>Comercial</option><option>Oficina/Operacional</option><option>Estoque/Peças</option><option>Financeiro</option><option>Administrativo</option></select></label>
+          <label>Prioridade<select id="filter-priority"><option value="">Todas as prioridades</option><option>Baixa</option><option>Média</option><option>Alta/Urgente</option></select></label>
+          <label class="search-label">Buscar<input id="filter-query" type="search" placeholder="Nome ou descrição"></label>
+          <button id="refresh-button" type="button">Atualizar</button>
+        </div>
+        <p id="monitor-message" class="message" role="status" aria-live="polite" hidden></p>
+        <div class="board" aria-label="Quadro de demandas">
+          <section class="column" aria-labelledby="pending-title"><h2 id="pending-title"><span class="dot pending"></span>Pendente <span id="visible-pending" class="count">0</span></h2><div id="cards-pending" class="cards"></div></section>
+          <section class="column" aria-labelledby="progress-title"><h2 id="progress-title"><span class="dot progress"></span>Em andamento <span id="visible-progress" class="count">0</span></h2><div id="cards-progress" class="cards"></div></section>
+          <section class="column" aria-labelledby="done-title"><h2 id="done-title"><span class="dot done"></span>Concluído <span id="visible-done" class="count">0</span></h2><div id="cards-done" class="cards"></div></section>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>Central de demandas · Global Peças <span>Pedidos claros. Prioridades visíveis.</span></footer>
+</body>
+</html>
