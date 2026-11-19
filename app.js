@@ -1,7 +1,7 @@
 /* CONFIGURAÇÃO: cole somente a URL pública e a chave anon/publicável do projeto.
    NUNCA coloque service_role, secret key ou senha de banco neste arquivo. */
-const SUPABASE_URL = 'COLE_SUA_SUPABASE_URL_AQUI';
-const SUPABASE_ANON_KEY = 'COLE_SUA_SUPABASE_ANON_KEY_AQUI';
+const SUPABASE_URL = 'https://vaatagbshmcnegfsdanl.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
 
 (() => {
   'use strict';
