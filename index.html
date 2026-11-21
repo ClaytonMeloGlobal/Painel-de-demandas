@@ -86,8 +86,41 @@
           <label class="search-label">Buscar<input id="filter-query" type="search" placeholder="Nome ou descrição"></label>
           <button id="refresh-button" type="button">Atualizar</button>
         </div>
+        <div class="view-controls" aria-label="Controles de visualização">
+          <div class="view-toggle" role="group" aria-label="Visualização das demandas">
+            <button id="view-table" type="button" aria-pressed="true" aria-controls="ranked-view">Planilha (Ranqueada)</button>
+            <button id="view-kanban" type="button" aria-pressed="false" aria-controls="kanban-view">Quadro (Kanban)</button>
+          </div>
+          <label class="hide-completed"><input id="hide-completed" type="checkbox">Ocultar concluídas</label>
+          <button id="export-csv" type="button" disabled>Exportar Excel/CSV</button>
+        </div>
+        <div class="ranking-info">
+          <p id="ranking-summary" role="status" aria-live="polite">Ranking padrão · Ativas primeiro, prioridade e mais antigas</p>
+          <button id="restore-ranking" class="subtle" type="button" hidden>Restaurar ranking padrão</button>
+        </div>
         <p id="monitor-message" class="message" role="status" aria-live="polite" hidden></p>
-        <div class="board" aria-label="Quadro de demandas">
+        <div id="ranked-view">
+          <p id="table-scroll-hint" class="table-hint">Em telas menores, deslize a tabela para ver todas as colunas.</p>
+          <div class="table-scroll panel" role="region" aria-label="Planilha de demandas" aria-describedby="table-scroll-hint" tabindex="0">
+            <table class="demand-table">
+              <caption class="sr-only">Demandas da empresa. Clique nos cabeçalhos com botões para alterar a ordenação.</caption>
+              <thead><tr>
+                <th scope="col">#</th>
+                <th scope="col" aria-sort="none"><button type="button" data-sort="prioridade">Prioridade <span aria-hidden="true">↕</span></button></th>
+                <th scope="col" aria-sort="none"><button type="button" data-sort="status">Status <span aria-hidden="true">↕</span></button></th>
+                <th scope="col" aria-sort="none"><button type="button" data-sort="created_at">Data / Hora <span aria-hidden="true">↕</span></button></th>
+                <th scope="col">Tempo em Aberto</th>
+                <th scope="col" aria-sort="none"><button type="button" data-sort="solicitante">Solicitante <span aria-hidden="true">↕</span></button></th>
+                <th scope="col" aria-sort="none"><button type="button" data-sort="departamento">Departamento <span aria-hidden="true">↕</span></button></th>
+                <th scope="col">Protocolo</th>
+                <th scope="col">Descrição da Demanda</th>
+                <th scope="col">Ações Rápidas</th>
+              </tr></thead>
+              <tbody id="demand-rows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="kanban-view" class="board" aria-label="Quadro de demandas" hidden>
           <section class="column" aria-labelledby="pending-title"><h2 id="pending-title"><span class="dot pending"></span>Pendente <span id="visible-pending" class="count">0</span></h2><div id="cards-pending" class="cards"></div></section>
           <section class="column" aria-labelledby="progress-title"><h2 id="progress-title"><span class="dot progress"></span>Em andamento <span id="visible-progress" class="count">0</span></h2><div id="cards-progress" class="cards"></div></section>
           <section class="column" aria-labelledby="done-title"><h2 id="done-title"><span class="dot done"></span>Concluído <span id="visible-done" class="count">0</span></h2><div id="cards-done" class="cards"></div></section>

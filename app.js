@@ -13,6 +13,12 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
   let channel = null, poll = null, refreshing = false, queued = false, epoch = 0;
   let realtimeOnline = false, soundEnabled = false, audio = null;
   let submission = null;
+  let view = 'table', manualSort = null, ageTimer = null;
+  try { if (localStorage.getItem('central-view') === 'kanban') view = 'kanban'; } catch { /* Opcional. */ }
+  const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+  const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza'
+  });
   const updating = new Set();
 
   function message(id, text = '', type = '') {
@@ -114,6 +120,8 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
     knownIds = null;
     clearInterval(poll);
     poll = null;
+    clearInterval(ageTimer);
+    ageTimer = null;
     if (channel) db.removeChannel(channel).catch(() => {});
     channel = null;
     realtimeOnline = false;
@@ -121,6 +129,9 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
     $('login-panel').hidden = false;
     document.body.classList.remove('fullscreen-view');
     COLUMNS.forEach(key => { $('cards-' + key).replaceChildren(); });
+    $('demand-rows').replaceChildren();
+    $('export-csv').disabled = true;
+    updating.clear();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
 
@@ -136,6 +147,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
       return false;
     }
     clearInterval(poll);
+    clearInterval(ageTimer);
     if (channel) await db.removeChannel(channel);
     if (currentEpoch !== epoch) return false;
     manager = session.user;
@@ -154,6 +166,8 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
         connection();
       });
     poll = setInterval(() => refresh(true), 15000);
+    // Mantém o tempo em aberto correto mesmo durante falhas de rede.
+    ageTimer = setInterval(updateAges, 30000);
     return true;
   }
 
@@ -241,19 +255,70 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
     }
   }
 
+  function defaultRanking(a, b) {
+    return Number(a.status === 'Concluído') - Number(b.status === 'Concluído')
+      || WEIGHT[b.prioridade] - WEIGHT[a.prioridade]
+      || Date.parse(a.created_at) - Date.parse(b.created_at)
+      || collator.compare(a.id, b.id);
+  }
+  function filteredRows() {
+    const department = $('filter-department').value;
+    const priority = $('filter-priority').value;
+    const query = $('filter-query').value.trim().toLocaleLowerCase('pt-BR');
+    return rows.filter(row => (!department || row.departamento === department)
+      && (!priority || row.prioridade === priority)
+      && (!$('hide-completed').checked || row.status !== 'Concluído')
+      && `${row.solicitante} ${row.descricao}`.toLocaleLowerCase('pt-BR').includes(query));
+  }
+  function displayedRows() {
+    return filteredRows().sort((a, b) => {
+      if (view !== 'table' || !manualSort) return defaultRanking(a, b);
+      const { key, direction } = manualSort;
+      let comparison;
+      if (key === 'prioridade') comparison = WEIGHT[b.prioridade] - WEIGHT[a.prioridade];
+      else if (key === 'status') comparison = STATES.indexOf(a.status) - STATES.indexOf(b.status);
+      else if (key === 'created_at') comparison = Date.parse(a.created_at) - Date.parse(b.created_at);
+      else comparison = collator.compare(a[key], b[key]);
+      return comparison * direction || defaultRanking(a, b);
+    });
+  }
   function render() {
     STATES.forEach((status, i) => {
       $('count-' + COLUMNS[i]).textContent = rows.filter(row => row.status === status).length;
     });
     $('count-urgent').textContent = rows.filter(row => row.prioridade === 'Alta/Urgente' && row.status !== 'Concluído').length;
-    const department = $('filter-department').value;
-    const priority = $('filter-priority').value;
-    const query = $('filter-query').value.trim().toLocaleLowerCase('pt-BR');
-    const filtered = rows.filter(row => (!department || row.departamento === department)
-      && (!priority || row.prioridade === priority)
-      && `${row.solicitante} ${row.descricao}`.toLocaleLowerCase('pt-BR').includes(query))
-      .sort((a, b) => WEIGHT[b.prioridade] - WEIGHT[a.prioridade]
-        || Date.parse(a.created_at) - Date.parse(b.created_at));
+    const filtered = displayedRows();
+    $('ranked-view').hidden = view !== 'table';
+    $('kanban-view').hidden = view !== 'kanban';
+    $('view-table').setAttribute('aria-pressed', String(view === 'table'));
+    $('view-kanban').setAttribute('aria-pressed', String(view === 'kanban'));
+    $('restore-ranking').hidden = view !== 'table' || !manualSort;
+    const orderLabel = view === 'table' && manualSort
+      ? `Ordem manual · ${document.querySelector(`[data-sort="${manualSort.key}"]`).childNodes[0].textContent.trim()} ${manualSort.direction === 1 ? 'crescente' : 'decrescente'}`
+      : 'Ranking padrão · Ativas primeiro, prioridade e mais antigas';
+    $('ranking-summary').textContent = `${filtered.length} de ${rows.length} demandas · ${orderLabel}`;
+    $('export-csv').disabled = !manager || !filtered.length;
+    document.querySelectorAll('[data-sort]').forEach(button => {
+      const active = manualSort && manualSort.key === button.dataset.sort;
+      button.parentElement.setAttribute('aria-sort', active ? (manualSort.direction === 1 ? 'ascending' : 'descending') : 'none');
+      button.querySelector('span').textContent = active ? (manualSort.direction === 1 ? '↑' : '↓') : '↕';
+    });
+    const body = $('demand-rows');
+    body.replaceChildren();
+    if (view === 'table') {
+      if (!filtered.length) {
+        const empty = element('td', 'Nenhuma demanda encontrada com estes filtros.', 'table-empty');
+        empty.colSpan = 10;
+        const tr = document.createElement('tr');
+        tr.append(empty);
+        body.append(tr);
+      } else {
+        const fragment = document.createDocumentFragment();
+        filtered.forEach((row, index) => fragment.append(tableRow(row, index)));
+        body.append(fragment);
+      }
+      return;
+    }
     STATES.forEach((status, i) => {
       const list = filtered.filter(row => row.status === status);
       const container = $('cards-' + COLUMNS[i]);
@@ -273,6 +338,88 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
     node.textContent = text; // Não interpreta HTML enviado no formulário.
     node.className = className;
     return node;
+  }
+  function ageLabel(row, now = Date.now()) {
+    if (row.status === 'Concluído') return 'Finalizado';
+    const minutes = Math.max(0, Math.floor((now - Date.parse(row.created_at)) / 60000));
+    if (minutes < 1) return 'Há menos de 1 min';
+    if (minutes < 60) return `Há ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    return hours >= 24 ? `Há ${Math.floor(hours / 24)}d ${hours % 24}h` : `Há ${hours}h ${minutes % 60} min`;
+  }
+  function setAge(node, row, now) {
+    node.textContent = ageLabel(row, now);
+    node.classList.toggle('overdue', row.status !== 'Concluído' && now - Date.parse(row.created_at) > 86400000);
+  }
+  function updateAges() {
+    const byId = new Map(rows.map(row => [row.id, row]));
+    const now = Date.now();
+    document.querySelectorAll('[data-age-id]').forEach(node => {
+      const row = byId.get(node.dataset.ageId);
+      if (row) setAge(node, row, now);
+    });
+  }
+  function tableRow(row, index) {
+    const tr = element('tr', '', row.status === 'Concluído' ? 'completed-row' : '');
+    const cell = (text = '', className = '') => {
+      const td = element('td', text, className);
+      tr.append(td);
+      return td;
+    };
+    cell(`${index + 1}º`, 'rank-cell');
+    cell().append(element('span', row.prioridade, 'badge ' + (row.prioridade === 'Alta/Urgente' ? 'high' : row.prioridade === 'Média' ? 'medium' : '')));
+    cell().append(element('span', row.status, 'badge status-' + COLUMNS[STATES.indexOf(row.status)]));
+    const time = element('time', dateFormatter.format(new Date(row.created_at)));
+    time.dateTime = row.created_at;
+    time.title = new Date(row.created_at).toLocaleString('pt-BR', { timeZone: 'America/Fortaleza' });
+    cell('', 'date-cell').append(time);
+    const age = cell('', 'age-cell');
+    age.dataset.ageId = row.id;
+    setAge(age, row, Date.now());
+    cell('', 'requester-cell').append(element('strong', row.solicitante));
+    cell(row.departamento, 'department-cell');
+    cell().append(element('code', row.id.slice(0, 8).toUpperCase(), 'protocol'));
+    cell(row.descricao, 'description-cell');
+    const actions = element('div', '', 'quick-actions');
+    const targets = row.status === 'Concluído' ? [['Reabrir', 'Pendente']]
+      : row.status === 'Pendente' ? [['Iniciar', 'Em andamento'], ['Concluir', 'Concluído']]
+      : [['Concluir', 'Concluído'], ['Reabrir', 'Pendente']];
+    targets.forEach(([label, status]) => {
+      const button = element('button', label);
+      button.type = 'button';
+      button.disabled = updating.has(row.id);
+      button.setAttribute('aria-label', `${label} demanda ${row.id.slice(0, 8).toUpperCase()} de ${row.solicitante}`);
+      button.addEventListener('click', () => changeStatus(row, status));
+      actions.append(button);
+    });
+    cell().append(actions);
+    return tr;
+  }
+  function csvCell(value) {
+    let text = String(value ?? '');
+    // Impede que textos do formulário sejam executados como fórmulas pelo Excel.
+    if (/^[\s\uFEFF]*[=+@-]/u.test(text) || /^[\t\r\n]/u.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
+  function exportCSV() {
+    if (!manager) return;
+    const data = displayedRows();
+    if (!data.length) return;
+    const headers = ['#', 'Prioridade', 'Status', 'Data / Hora', 'Tempo em Aberto', 'Solicitante', 'Departamento', 'Protocolo', 'Descrição da Demanda', 'Ações Rápidas'];
+    const now = Date.now();
+    const lines = [headers, ...data.map((row, index) => [
+      `${index + 1}º`, row.prioridade, row.status, dateFormatter.format(new Date(row.created_at)), ageLabel(row, now),
+      row.solicitante, row.departamento, row.id.slice(0, 8).toUpperCase(), row.descricao, ''
+    ])];
+    const blob = new Blob(['\uFEFF' + lines.map(line => line.map(csvCell).join(';')).join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'demandas-' + new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Fortaleza' }).format(new Date()) + '.csv';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function card(row) {
     const article = element('article', '', 'card' + (row.prioridade === 'Alta/Urgente' ? ' urgent' : ''));
@@ -299,23 +446,42 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zwo-fPfqZqTqpPpBPYIvZw_oliso9xa';
   }
   async function changeStatus(row, status) {
     if (!manager || updating.has(row.id)) return;
+    const currentEpoch = epoch;
     updating.add(row.id);
     render();
     try {
       const { data, error } = await db.from('demandas').update({ status })
         .eq('id', row.id).eq('updated_at', row.updated_at).select('id');
+      if (currentEpoch !== epoch) return;
       if (error) throw error;
-      if (!data.length) {
-        message('monitor-message', 'Este pedido foi alterado por outro gestor. O quadro foi atualizado; confira antes de tentar novamente.', 'error');
-      } else message('monitor-message', 'Situação atualizada.', 'success');
       await refresh(true);
+      if (currentEpoch !== epoch) return;
+      if (!data.length) {
+        message('monitor-message', 'Este pedido foi alterado por outro gestor. A lista foi atualizada; confira antes de tentar novamente.', 'error');
+      } else if (!$('monitor-message').classList.contains('error')) {
+        message('monitor-message', 'Situação atualizada.', 'success');
+      }
     } catch {
-      message('monitor-message', 'Não foi possível mudar a situação. Confira a conexão e tente novamente.', 'error');
-    } finally { updating.delete(row.id); render(); }
+      if (currentEpoch === epoch) message('monitor-message', 'Não foi possível mudar a situação. Confira a conexão e tente novamente.', 'error');
+    } finally { if (currentEpoch === epoch) { updating.delete(row.id); render(); } }
   }
   ['filter-department', 'filter-priority'].forEach(id => $(id).addEventListener('change', render));
   $('filter-query').addEventListener('input', render);
   $('refresh-button').addEventListener('click', () => refresh(true));
+  $('hide-completed').addEventListener('change', render);
+  $('export-csv').addEventListener('click', exportCSV);
+  ['table', 'kanban'].forEach(mode => $('view-' + mode).addEventListener('click', () => {
+    view = mode;
+    try { localStorage.setItem('central-view', view); } catch { /* Opcional. */ }
+    render();
+  }));
+  document.querySelectorAll('[data-sort]').forEach(button => button.addEventListener('click', () => {
+    const key = button.dataset.sort;
+    manualSort = { key, direction: manualSort?.key === key ? -manualSort.direction : 1 };
+    render();
+  }));
+  $('restore-ranking').addEventListener('click', () => { manualSort = null; render(); });
+  render();
 
   // Navegadores exigem um clique para liberar reprodução sonora.
   $('sound-toggle').addEventListener('click', async () => {
